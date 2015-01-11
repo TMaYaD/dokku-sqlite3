@@ -1,0 +1,18 @@
+#!/bin/bash
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+APP="$1"
+IMAGE="dokku/$1"
+
+PLUGIN_DIR=$(dirname $0)
+
+echo "-----> Injecting sqlite3 ..."
+
+if docker run -a stdout -i $IMAGE /usr/bin/dpkg -s libsqlite3-dev > /dev/null; then
+  echo "sqlite3 is already installed (skipping apt-get update/install)"
+else
+  echo "sqlite3 is not installed (will install via apt-get)"
+  id=$(docker run -i -a stdin $IMAGE /bin/bash -c "apt-get update && apt-get install -y libsqlite3-dev && apt-get clean")
+  test $(docker wait $id) -eq 0
+  docker commit $id $IMAGE > /dev/null
+fi
